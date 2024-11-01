@@ -51,13 +51,10 @@ function agent_step!(agent::Robot, model)
         for other_agent in nearby_agents(agent,model,1)
             #Si encuentra una caja, la ignora y se mueve a una posicion libre
             if other_agent isa Box
-                for move in possible_moves
-                    new_pos = current_pos .+ move
-                    if is_empty_space(new_pos, model)
-                        move_agent!(agent, new_pos, model)
-                        break
-                    end
-                end
+                opposite_direction = -1 .* (agent.pos .- other.pos)
+                new_pos = agent.pos .+ opposite_direction
+                move_agent!(agent, new_pos, model)
+                break
             #Si encuentra un robot con id menor, el agente se mueve en la direccion contraria
             elseif other_agent isa Robot && agent.id > other_agent.id
                 opposite_direction = -1 .* (agent.pos .- other.pos)
