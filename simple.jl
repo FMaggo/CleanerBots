@@ -18,6 +18,12 @@ function agent_step!(agent::Robot, model)
     print(".")
     possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
     current_pos = agent.pos
+    #Si no encuentra agente cercano, se mueve de manera aleatoria
+    shuffle!(possible_moves)
+        for move in possible_moves
+            new_pos = current_pos .+ move
+            move_agent!(agent, new_pos, model)
+        end
     #Cuando el robot no lleva una caja y encuentra otros agentes
     if agent.carrying_box == false
         for other in nearby_agents(agent, model,1)
@@ -36,16 +42,14 @@ function agent_step!(agent::Robot, model)
                 current_pos = agent.pos
             end
         end
-        #Si no encuentra agente cercano, se mueve de manera aleatoria
-        shuffle!(possible_moves)
-        for move in possible_moves
-            new_pos = current_pos .+ move
-            move_agent!(agent, new_pos, model)
-        end
     #Cuando el robot lleva una caja y no ha llegado a la pared norte
     elseif agent.carrying_box == true && agent.pos[2] != 40
         #Si no hay agente cercano, se mueve hacia arriba
         prefmove = [(0,1)]
+        for move in prefmove
+            new_pos = agent.pos .+ move
+            move_agent!(agent, new_pos, model) 
+        end
         for other_agent in nearby_agents(agent,model,1)
             #Si encuentra una caja, la ignora y se mueve a una posicion libre
             if other_agent isa Box
@@ -63,6 +67,7 @@ function agent_step!(agent::Robot, model)
             end
         end
     elseif agent.carrying_box == true && agent.pos[2] == 40
+        #Si no hay agente cercano, se mueve hacia abajo
         restricted_move = [(0,-1)]
         for move in restricted_move
             new_pos = current_pos .+ move
@@ -74,10 +79,6 @@ function agent_step!(agent::Robot, model)
             #add_agent!(Box, agent.pos, box_count = 1, model)
             end
         end
-    end
-    for move in prefmove
-        new_pos = agent.pos .+ move
-        move_agent!(agent, new_pos, model) 
     end
 end
 
