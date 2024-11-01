@@ -5,6 +5,7 @@ import sys
 import requests
 from OpMat import OpMat
 from caja import Caja
+from robot import Robot
 
 # URL base de la API y obtención de datos
 URL_BASE = "http://localhost:8000"
@@ -32,10 +33,11 @@ for box_data in datos["boxes"]:
     caja_obj.update_position(x_pos, y_pos)
     cajas_normales.append(caja_obj)
 
+# Crear instancias de Robot en lugar de Caja para representar a los robots
 for robot_data in datos["robots"]:
-    robot_obj = Caja(opmat)  # Usamos la clase Caja para representar a los robots
-    x_pos = robot_data["pos"][0] * 20 - 400
-    y_pos = robot_data["pos"][1] * 20 - 400
+    robot_obj = Robot(opmat)  # Crear una instancia de Robot
+    x_pos = (robot_data["pos"][0] - 1) * 20 -400
+    y_pos = (40 - robot_data["pos"][1]) * 20 -400 # Invertir el eje Y para que comience desde la parte superior
     robot_obj.update_position(x_pos, y_pos)
     robots.append(robot_obj)
 
@@ -57,7 +59,7 @@ def display():
 
     # Dibujar los robots en rojo
     for robot_obj in robots:
-        robot_obj.render(color=(1.0, 0.0, 0.0))  # Rojo
+        robot_obj.render(color=(1.0, 0.0, 0.0))
 
     glutSwapBuffers()
 
