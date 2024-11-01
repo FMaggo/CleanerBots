@@ -20,9 +20,15 @@ function agent_step!(agent::Robot, model)
     current_pos = agent.pos
     #Cuando el robot no lleva una caja y encuentra otros agentes
     if agent.carrying_box == false
+        #Si no encuentra agente cercano, se mueve de manera aleatoria
+        shuffle!(possible_moves)
+        for move in possible_moves
+            new_pos = current_pos .+ move
+            move_agent!(agent, new_pos, model)
+        end
         for other in nearby_agents(agent, model,1)
             #Si no se lleva caja y se encuentra una, el robot toma su posicion y la agarra
-            if other isa Box && other.box_count == 1 && other.pos[2] != 40 && other.id > other.id
+            if other isa Box && other.box_count == 1 && other.pos[2] != 40
                 agent.pos = other.pos
                 agent.carrying_box = true
                 remove_agent!(other, model)
@@ -37,17 +43,16 @@ function agent_step!(agent::Robot, model)
             elseif other isa Robot && agent.id < other.id
                 current_pos = agent.pos
                 break
-            #Si no encuentra agente cercano, se mueve de manera aleatoria
-            else
-                shuffle!(possible_moves)
-                for move in possible_moves
-                    new_pos = current_pos .+ move
-                    move_agent!(agent, new_pos, model)
-                end
             end
         end
     #Cuando el robot lleva una caja y no ha llegado a la pared norte
     elseif agent.carrying_box == true && agent.pos[2] != 40
+        #Si no hay agente cercano, se mueve hacia arriba
+        prefmove = [(0,1)]
+                for move in prefmove
+                    new_pos = agent.pos .+ move
+                    move_agent!(agent, new_pos, model) 
+                end
         for other_agent in nearby_agents(agent,model,1)
             #Si encuentra una caja, la ignora y se mueve a una posicion libre
             if other_agent isa Box
@@ -65,22 +70,20 @@ function agent_step!(agent::Robot, model)
             elseif other_agent isa Robot && agent.id < other_agent.id
                 current_pos = agent.pos
                 break
-            #Si no hay agente cercano, se mueve hacia arriba
-            else
-                prefmove = [(0,1)]
-                for move in prefmove
-                    new_pos = agent.pos .+ move
-                    move_agent!(agent, new_pos, model) 
-                end
             end
         end
     elseif agent.carrying_box == true && agent.pos[2] == 40
-        agent.carrying_box = false
-        add_agent!(Box, agent.pos, box_count = 1, model)
         restricted_move = [(0,-1)]
         for move in restricted_move
             new_pos = current_pos .+ move
             move_agent!(agent, new_pos, model)
+        end
+        for agent in nearby_agents(agent, model, 1)
+            if agent isa Box && agent.box_count 
+            agent.carrying_box = false
+            add_agent!(Box, agent.pos, box_count = 1, model)
+            break
+            end
         end
     end
 end
