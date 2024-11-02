@@ -9,70 +9,74 @@ end
     box_count::Int
 end
 
-#directions = Dict(:north => (0, 1), :south => (0, -1), :east => (1, 0), :west => (-1, 0))
-#opposite_direction = Dict(:north => :south, :south => :north, :east => :west, :west => :east)
+directions = Dict(:north => (0, 1), :south => (0, -1), :east => (1, 0), :west => (-1, 0))
+opposite_direction = Dict(:north => :south, :south => :north, :east => :west, :west => :east)
+
+max_x, max_y = model.griddims
+
 function agent_step!(agent::Box, model)
 end
+
+#agent.orientation = :north
+#agent.directions[directions], model 
+#relative directions
 
 function agent_step!(agent::Robot, model)
     print(".")
     possible_moves = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-    current_pos = agent.pos
-    #Si no encuentra agente cercano, se mueve de manera aleatoria
-    shuffle!(possible_moves)
+    if !agent.carrying_box
+        # Si el robot no lleva una caja
+        shuffle!(possible_moves)
+        
         for move in possible_moves
-            new_pos = current_pos .+ move
+            new_pos = agent.pos .+ move
             move_agent!(agent, new_pos, model)
         end
-    #Cuando el robot no lleva una caja y encuentra otros agentes
-    if agent.carrying_box == false
-        for other in nearby_agents(agent, model,1)
-            #Si no se lleva caja y se encuentra una, el robot toma su posicion y la agarra
-            if other isa Box && other.box_count == 1 && other.pos[2] != 40
+        
+        for other in nearby_agents(agent, model, 1)
+            # Si encuentra una caja, la recoge y la elimina del mapa
+            if other isa Box && other.pos[2] != 40
                 agent.carrying_box = true
-                remove_agent!(other, model)
                 agent.pos = other.pos
-                new_pos = agent.pos .+ (0,1)
-                move_agent!(agent, new_pos, model)
-            #Si encuentra un robot con id menor, el agente se mueve en la direccion contraria
+                remove_agent!(other, model)  # Eliminar caja correctamente
+                break
+            # Si encuentra un robot de menor id, se mueve en dirección contraria
             elseif other isa Robot && agent.id > other.id
-                opposite_direction = -1 .* (agent.pos .- other.pos)
-                new_pos = agent.pos .+ opposite_direction
+                opposite_move = -1 .* (agent.pos .- other.pos)
+                new_pos = agent.pos .+ opposite_move
                 move_agent!(agent, new_pos, model)
-            #Si encuentra un robot con id mayor, el robot se queda en su posicion
-            elseif other isa Robot && agent.id < other.id
-                current_pos = agent.pos
+                break
             end
         end
-    #Cuando el robot lleva una caja y no ha llegado a la pared norte
-    elseif agent.carrying_box == true && agent.pos[2] != 40
-        #Si no hay agente cercano, se mueve hacia arriba
-        new_pos = agent.pos .+ (0,1)
-        move_agent!(agent, new_pos, model) 
-        for other_agent in nearby_agents(agent,model,1)
-            #Si encuentra una caja, la ignora y se mueve a una posicion libre
-            if other_agent isa Box
-                opposite_direction = -1 .* (agent.pos .- other.pos)
-                new_pos = agent.pos .+ opposite_direction
+        
+    elseif agent.carrying_box && agent.pos[2] < 40
+        # Si lleva una caja y no ha llegado a la pared norte
+        new_pos = agent.pos .+ (0, 1)
+        move_agent!(agent, new_pos, model)
+        
+        for other in nearby_agents(agent, model, 1)
+            # Ignora las cajas mientras lleva otra
+            if other isa Box
+                continue
+            # Si encuentra un robot de menor id, se mueve en dirección contraria
+            elseif other isa Robot && agent.id > other.id
+                opposite_move = -1 .* (agent.pos .- other.pos)
+                new_pos = agent.pos .+ opposite_move
                 move_agent!(agent, new_pos, model)
-            #Si encuentra un robot con id menor, el agente se mueve en la direccion contraria
-            elseif other_agent isa Robot && agent.id > other_agent.id
-                opposite_direction = -1 .* (agent.pos .- other.pos)
-                new_pos = agent.pos .+ opposite_direction
-                move_agent!(agent, new_pos, model)
-            #Si encuentra un robot con id mayor, el robot se queda en su posicion
-            elseif other_agent isa Robot && agent.id < other_agent.id
-                current_pos = agent.pos
+                break
             end
         end
-    elseif agent.carrying_box == true && agent.pos[2] == 40
-        #Si no hay agente cercano, se mueve hacia abajo
-            new_pos = current_pos .+ (0,-1)
-            move_agent!(agent, new_pos, model)
-        for agent in nearby_agents(agent, model, 1)
-            if agent isa Box && agent.box_count 
-            agent.carrying_box = false
-            #add_agent!(Box, agent.pos, box_count = 1, model)
+
+    elseif agent.carrying_box && agent.pos[2] == 40
+        # Si ha llegado a la pared norte
+        agent.carrying_box = false  # Deja la caja
+        for other in nearby_agents(agent, model, 1)
+            if other isa Box && other.pos[2] == 40 && other.box_count < 5
+                other.box_count += 1  # Apilar en la caja existente
+                break
+            else
+                add_agent!(Box, agent.pos, model, box_count=1)  # Crear nueva pila
+                break
             end
         end
     end
